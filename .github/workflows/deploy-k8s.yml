@@ -1,0 +1,35 @@
+name: Deploy to Kubernetes
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      namespace:
+        required: true
+        type: string
+      deployment:
+        required: true
+        type: string
+    secrets:
+      KUBECONFIG_CONTENT:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        
+      - name: Deploy to K8s
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_CONTENT }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+          
+          kubectl set image deployment/${{ inputs.deployment }} ${{ inputs.deployment }}=${{ inputs.image }} -n ${{ inputs.namespace }}
+          kubectl rollout status deployment/${{ inputs.deployment }} -n ${{ inputs.namespace }}
