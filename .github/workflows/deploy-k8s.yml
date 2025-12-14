@@ -19,6 +19,10 @@ on:
     secrets:
       KUBECONFIG_CONTENT:
         required: false
+      REGISTRY_USERNAME:
+        required: false
+      REGISTRY_PASSWORD:
+        required: false
 
 jobs:
   deploy:
@@ -44,6 +48,12 @@ jobs:
           kubectl create namespace ${{ inputs.namespace }} || true
           
           if [ "${{ inputs.create_local_cluster }}" == "true" ]; then
+            # Create secret for GHCR
+            kubectl create secret docker-registry regcred \
+              --docker-server=ghcr.io \
+              --docker-username=${{ secrets.REGISTRY_USERNAME }} \
+              --docker-password=${{ secrets.REGISTRY_PASSWORD }}
+
             cat <<EOF | kubectl apply -f -
           apiVersion: apps/v1
           kind: Deployment
@@ -60,6 +70,8 @@ jobs:
                 labels:
                   app: ${{ inputs.deployment }}
               spec:
+                imagePullSecrets:
+                - name: regcred
                 containers:
                 - name: ${{ inputs.deployment }}
                   image: nginx:alpine
