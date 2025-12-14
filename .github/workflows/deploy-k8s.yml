@@ -44,7 +44,26 @@ jobs:
           kubectl create namespace ${{ inputs.namespace }} || true
           
           if [ "${{ inputs.create_local_cluster }}" == "true" ]; then
-            kubectl create deployment ${{ inputs.deployment }} --image=nginx:alpine -n ${{ inputs.namespace }}
+            cat <<EOF | kubectl apply -f -
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: ${{ inputs.deployment }}
+            namespace: ${{ inputs.namespace }}
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: ${{ inputs.deployment }}
+            template:
+              metadata:
+                labels:
+                  app: ${{ inputs.deployment }}
+              spec:
+                containers:
+                - name: ${{ inputs.deployment }}
+                  image: nginx:alpine
+          EOF
           fi
           
           kubectl set image deployment/${{ inputs.deployment }} ${{ inputs.deployment }}=${{ inputs.image }} -n ${{ inputs.namespace }}
